@@ -1,0 +1,71 @@
+<div class="container">
+  <!-- Main hero unit for a primary marketing message or call to action -->
+  <!-- <a href='/status'> -->
+    <div id="status" class="alert"></div>
+  <!-- </a> -->
+    <div class="hero-unit">
+      <h1>Argonne's OpenStack Cloud</h1>
+      <p></p>
+      <p><a class="btn btn-primary btn-large" href="/wiki/about">Learn more &raquo;</a></p>
+      </div>
+      <div class="row">
+        <div class="span4">
+          <h2>Sign Up</h2>
+          <p>Sign up to use Magellan.</p>
+          <p><a class="btn" href="/wiki/signup">View details &raquo;</a></p>
+        </div>
+        <div class="span4">
+          <h2>Learn</h2>
+          <p>We've put together lots of documents to help you make the most
+          out of the Magellan hardware and software. In addition, there are
+          tons of useful documents for using OpenStack software.</p>
+          <p><a class="btn" href="/wiki/docs">View details &raquo;</a></p>
+       </div>
+        <div class="span4">
+          <h2>Get Support</h2>
+          <p>Running into a problem? We can help!</p>
+          <p><a class="btn" href="/wiki/support">View details &raquo;</a></p>
+        </div>
+      </div>
+
+      <hr>
+
+      <footer>
+        <p>
+          <img style='width: 200px;' src='/img/doe.png'/>
+          <img style='height: 65px; float: right;' src='/img/anl.jpg'/>
+        </p>
+      </footer>
+
+    </div> <!-- /container -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/js/jquery.js"></script>
+    <script src="/js/bootstrap-transition.js"></script>
+    <script type="application/javascript">
+    // Update the site status
+    $(document).ready(function () {
+      // Function that reads the data and actually updates
+      // the HTML { status : ( 'good' || 'alert' || 'down' )
+      //            message : "string", timestamp : ISO TS }            
+      var status_update = function (data) {
+        var alert_classes = ['alert', 'alert-block'];
+        if (data['status'] === 'good') {
+          alert_classes.push('alert-success');
+        } else if(data['status'] === 'down') {
+          alert_classes.push('alert-error');
+        }
+        var html = "<strong>System Status:</strong> " + data['message'];
+        $('#status').addClass(alert_classes.join(" "))
+                    .html(html);
+      }; 
+      // Query the status-api resource
+      var poll = function () {
+        $.ajax({ url : "/status-api",
+                 success : status_update,
+                 dataType : "json",
+              });
+      };
+      // Run this query every 30 seconds
+      window.setTimeout(poll, 30 * 1000) && poll();
+   }); 
+  </script>

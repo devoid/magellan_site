@@ -1,0 +1,77 @@
+require 'sinatra'
+require 'gollum'
+require 'pygments'
+require 'haml'
+require 'data_mapper'
+require 'json'
+
+# Connect to the database
+DataMapper.setup(:default, "sqlite3://#{Dir.pwd}/status.db")
+# Model for Status updates, which are one-line posts
+# with a timestamp and a flag { good, alert, down }
+class Status
+  include DataMapper::Resource
+  property :id, Serial
+  property :status, String, :required => true
+  property :message, String
+  property :timestamp, DateTime
+
+  def to_json(*a)
+    {
+      'status'    => self.status,
+      'message'   => self.message,
+      'timestamp' => self.timestamp.to_s,
+    }.to_json(*a)
+  end
+end
+DataMapper.finalize
+Status.auto_upgrade!
+
+
+class MagellanWiki < Sinatra::Base
+  set :public_folder, File.dirname(__FILE__) + '/static'
+
+  get '/' do
+    erb :index, :locals => { :title => "The Argonne National Lab Cloud" }
+  end
+
+  get '/wiki/:page_name' do |page_name|
+    wiki = Gollum::Wiki.new('~/wiki', :base_path => '/wiki')
+    if page = wiki.paged(page_name, exact = true)
+      erb :wiki, :locals => {
+        :content => page.formatted_data, 
+        :title   => page_name
+      }
+    elsif file = wiki.file(page_name)
+      content_type = file.mime_type
+      halt 200, { 'Content-Type' => content_type }, file.raw_data
+    end
+  end
+
+  # System Status API
+  post '/status-api' do 
+    # rewind in case it was already read
+    request.body.rewind
+    data = JSON.parse request.body.read
+    if !data.has_key?('status')
+      status 400
+    end
+    status = Status.create(
+      :status => data['status'],
+      :message => data['message'],
+      :timestamp => Time.now.getutc
+    )
+    status.save()
+    status 200
+    body(status.to_json)
+  end 
+  get '/status-api' do
+    s = Status.all(:limit => 1, :offset => 0, :order => :timestamp.desc)
+    if s.length == 0
+      status 404 
+    end 
+    status 200
+    body(s[0].to_json)
+  end
+  run! if app_file == $0
+end
