@@ -5,14 +5,14 @@ require 'haml'
 require 'data_mapper'
 require 'json'
 
-dir = File.dirname(__FILE__)
-database    = 'sqlite://' + dir + '/status.db'
-gollum_wiki = dir + '/wiki'
-wiki_root   = 'docs'
-api_token   = ""
+@dir = File.dirname(__FILE__)
+@database    = 'sqlite://' + @dir + '/status.db'
+$gollum_wiki = @dir + '/wiki'
+$wiki_root   = 'docs'
+$api_token   = ""
 
 # Database Configuration
-DataMapper.setup(:default, database)
+DataMapper.setup(:default, @database)
 # Model for Status updates, which are one-line posts
 # with a timestamp and a flag { good, alert, down }
 class Status
@@ -40,10 +40,9 @@ class MagellanWiki < Sinatra::Base
   get '/' do
     erb :index, :locals => { :title => "The Argonne National Lab Cloud" }
   end
-  
   # Wiki 
   get '/wiki/:page_name' do |page_name|
-    wiki = Gollum::Wiki.new(gollum_wiki, :base_path => '/wiki')
+    wiki = Gollum::Wiki.new($gollum_wiki, :base_path => '/wiki')
     if page = wiki.paged(page_name, exact = true)
       erb :wiki, :locals => {
         :content => page.formatted_data, 
@@ -52,17 +51,12 @@ class MagellanWiki < Sinatra::Base
     elsif file = wiki.file(page_name)
       content_type = file.mime_type
       halt 200, { 'Content-Type' => content_type }, file.raw_data
+    else
+      pass
     end
   end
-  
-  # Capture all unknown wiki routes and return 404 not found
-  get '/wiki/.*' do | page |
-    status 404
-    erb :error, :locals => { :title => "Not Found", :page => page }
-  end
-
   # System Status API
-  post '/status-api' do 
+  post '/status/api' do 
     # rewind in case it was already read
     request.body.rewind
     data = JSON.parse request.body.read
@@ -90,13 +84,16 @@ class MagellanWiki < Sinatra::Base
     status 200
     body(obj.to_json)
   end 
-  get '/status-api' do
+  get '/status/api' do
     s = Status.all(:limit => 1, :offset => 0, :order => :timestamp.desc)
     if s.length == 0
       status 404 
     end 
     status 200
     body(s[0].to_json)
+  end
+  not_found do
+    erb :error, :locals => { :title => "Not Found" }
   end
   run! if app_file == $0
 end

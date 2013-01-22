@@ -1,12 +1,18 @@
 #!/usr/bin/env ruby
-require 'rest_client'
+# Ensure that the gems are here
+require 'rubygems'
+gem 'rest-client',  '~>1.6.7'
+gem 'rainbow',      '~>1.1.4'
+gem 'json',         '~>1.7.6'
+# And load the libraries
 require 'optparse'
+require 'tempfile'
+require 'rest-client'
 require 'rainbow'
 require 'json'
-require 'tempfile'
-
 
 # TODO: Get OptionParser to check for multiple incompatible flags -g -a -d
+# TODO: Support multiple services
 options = {
   :host => "localhost:4567",
   :debug => false,
@@ -14,7 +20,7 @@ options = {
 }
 
 parser = OptionParser.new do  |opts|
-  opts.banner = "Usage: magellan-status [service] [options]"
+  opts.banner = "Usage: magellan-status [options]"
   opts.on("-g", "--good", "Set the service status to a good message") do
     options[:status]  = "good"
   end
