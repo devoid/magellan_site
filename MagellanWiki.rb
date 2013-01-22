@@ -5,8 +5,14 @@ require 'haml'
 require 'data_mapper'
 require 'json'
 
-# Connect to the database
-DataMapper.setup(:default, "sqlite3://#{Dir.pwd}/status.db")
+dir = File.dirname(__FILE__)
+database    = 'sqlite://' + dir + '/status.db'
+gollum_wiki = dir + '/wiki'
+wiki_root   = 'docs'
+api_token   = ""
+
+# Database Configuration
+DataMapper.setup(:default, database)
 # Model for Status updates, which are one-line posts
 # with a timestamp and a flag { good, alert, down }
 class Status
@@ -27,16 +33,17 @@ end
 DataMapper.finalize
 Status.auto_upgrade!
 
-
+# Sinatra App
 class MagellanWiki < Sinatra::Base
   set :public_folder, File.dirname(__FILE__) + '/static'
-
+  # Index is special, uses the index template
   get '/' do
     erb :index, :locals => { :title => "The Argonne National Lab Cloud" }
   end
-
+  
+  # Wiki 
   get '/wiki/:page_name' do |page_name|
-    wiki = Gollum::Wiki.new('~/wiki', :base_path => '/wiki')
+    wiki = Gollum::Wiki.new(gollum_wiki, :base_path => '/wiki')
     if page = wiki.paged(page_name, exact = true)
       erb :wiki, :locals => {
         :content => page.formatted_data, 
@@ -47,6 +54,12 @@ class MagellanWiki < Sinatra::Base
       halt 200, { 'Content-Type' => content_type }, file.raw_data
     end
   end
+  
+  # Capture all unknown wiki routes and return 404 not found
+  get '/wiki/.*' do | page |
+    status 404
+    erb :error, :locals => { :title => "Not Found", :page => page }
+  end
 
   # System Status API
   post '/status-api' do 
@@ -56,14 +69,26 @@ class MagellanWiki < Sinatra::Base
     if !data.has_key?('status')
       status 400
     end
-    status = Status.create(
-      :status => data['status'],
-      :message => data['message'],
-      :timestamp => Time.now.getutc
-    )
-    status.save()
+    
+    if data.has_key?('amend') and data['amend']
+      objs = Status.all(:limit => 1, :offset => 0, :order => :timestap.desc)
+      if objs.length > 0
+        obj  = objs[0] 
+        obj.status = data['status']
+        obj.message = data['message']   
+        obj.timestamp = Time.now.getutc
+      end
+    end
+    if !obj 
+      obj = Status.create(
+        :status => data['status'],
+        :message => data['message'],
+        :timestamp => Time.now.getutc
+      )
+    end
+    obj.save()
     status 200
-    body(status.to_json)
+    body(obj.to_json)
   end 
   get '/status-api' do
     s = Status.all(:limit => 1, :offset => 0, :order => :timestamp.desc)
