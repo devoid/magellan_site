@@ -6,9 +6,8 @@ require 'rubygems'
 require 'bundler'
 Bundler.require
 
-# Initalize git submodule(s)
-system 'git submodule init'
-system 'git submodule update'
+# Check out magellan_wiki git repo
+system 'git clone git://github.com/devoid/magellan_wiki.git wiki'
 
 # Start the app
 require './MagellanWiki'
