@@ -43,7 +43,7 @@ class MagellanWiki < Sinatra::Base
   # Wiki 
   get '/wiki/:page_name' do |page_name|
     wiki = Gollum::Wiki.new($gollum_wiki, :base_path => '/wiki')
-    if page = wiki.paged(page_name, exact = true)
+    if page = wiki.paged(page_name, nil, exact = true)
       erb :wiki, :locals => {
         :content => page.formatted_data, 
         :title   => page_name
