@@ -65,13 +65,10 @@ class MagellanWiki < Sinatra::Base
     end
     
     if data.has_key?('amend') and data['amend']
-      objs = Status.all(:limit => 1, :offset => 0, :order => :timestap.desc)
-      if objs.length > 0
-        obj  = objs[0] 
-        obj.status = data['status']
-        obj.message = data['message']   
-        obj.timestamp = Time.now.getutc
-      end
+      obj = Status.first(:limit => 1, :offset => 0, :order => :timestap.desc)
+      obj.status = data['status']
+      obj.message = data['message']   
+      obj.timestamp = Time.now.getutc
     end
     if !obj 
       obj = Status.create(
@@ -82,15 +79,21 @@ class MagellanWiki < Sinatra::Base
     end
     obj.save()
     status 200
-    body(obj.to_json)
+    obj.to_json
   end 
   get '/status/api' do
-    s = Status.all(:limit => 1, :offset => 0, :order => :timestamp.desc)
-    if s.length == 0
-      status 404 
+    s = Status.first(:limit => 1, :offset => 0, :order => :timestamp.desc)
+    if !s
+        s = Status.create(
+            :status => 'good',
+            :message => "All systems OK!",
+            :timestamp => Time.now.getutc
+        )
+        s.save()
     end 
     status 200
-    body(s[0].to_json)
+    content_type :json
+    s.to_json
   end
   not_found do
     erb :error, :locals => { :title => "Not Found" }
