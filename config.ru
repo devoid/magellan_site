@@ -10,7 +10,7 @@ Bundler.require
 if !File.directory? 'wiki'
     system 'git clone git://github.com/devoid/magellan_wiki.git wiki'
 else
-    system 'cd wiki; git checkout --force master; git reset --hard HEAD; git pull origin/master'
+    system 'cd wiki; git checkout --force master; git reset --hard HEAD; git pull origin master'
 end
 
 # Start the app
