@@ -26,17 +26,21 @@ parser.add_argument('-s', '--status', dest="status", choices=['good', 'alert', '
 parser.add_argument('--amend', dest="amend", action="store_const", const=True,
     help="Amend the existing status rather than pushing a new status onto the history.")
 parser.add_argument('--host', dest="host", help="Talk to a non-default host")
+parser.add_argument('-m', '--message', dest="message", help="Message to display.")
 
 # Just make parser return a dictionary with non-None values
 args = { k : v for k,v in vars(parser.parse_args()).iteritems() if v != None}
 host = args.get('host', 'cloud.mcs.anl.gov')
 host = 'http://' + host + '/status/api'
 res  = None
-if args.get('status'):
-    message = editor_buffer("""\
+editor_template = """\
 # Enter a useful status message
 # Lines beginning in a "#" will be removed
-""") 
+"""
+if args.get('status'):
+    message = args.get('message')
+    if not message:
+        message = editor_buffer(editor_template)
     payload = {
         'status' : args.get('status'),
         'message' : message,
