@@ -79,6 +79,7 @@ class MagellanWiki < Sinatra::Base
     end
     obj.save()
     status 200
+    content_type :json
     obj.to_json
   end 
   get '/status/api' do

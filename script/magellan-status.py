@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import os, subprocess, tempfile, re, sys, requests, argparse
+import os, subprocess, tempfile, re, sys, requests, argparse, json
 
 def editor_buffer(template):
     template = template or ""
@@ -42,11 +42,12 @@ if args.get('status'):
         'message' : message,
         'amend' : args.get('amend', False)
     }
-    res = requests.post(host, data=payload)
+    headers = { "Content-type" : "application/json", "Accept": "application/json" }
+    res = requests.post(host, data=json.dumps(payload), headers=headers)
 else:
     res = requests.get(host)
 
-if res and res.headers['content-type'] == 'application/json':
+if res and re.match("^application/json", res.headers['content-type']):
     body = res.json()
     text = 'Status: ' + body['message']
     try:
@@ -59,5 +60,6 @@ if res and res.headers['content-type'] == 'application/json':
     print(text)
 elif res:
     sys.stderr.write("Invalid response from " + host + "\n")
+    sys.stderr.write(res.headers['content-type'])
 else:
     sys.stderr.write("No response from " + host + "\n")
